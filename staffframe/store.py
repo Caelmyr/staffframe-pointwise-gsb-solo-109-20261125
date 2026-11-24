@@ -27,6 +27,10 @@ class Cards:
             card = json.loads((self.folder(key) / "card.json").read_text())
             if revision is not None and integer(revision, "工作版本", 1) != card["revision"]:
                 raise Conflict("校读卡已经改动，请重新打开")
+            mode = card.get("staff_mode", "straight")
+            trace = card.get("trace")
+            if mode != "traced" or not staff.tracking.valid_trace(trace, card["settings"]):
+                card["staff_mode"], card["trace"] = "straight", None
             return card
 
     @staticmethod
@@ -55,7 +59,8 @@ class Cards:
             folder.mkdir()
             (folder / "capture.png").write_bytes(data)
             card = {"id": key, "revision": 1, "name": name, "photo_name": title, "synthetic": synthetic,
-                    "width": size[0], "height": size[1], "settings": config}
+                    "width": size[0], "height": size[1], "settings": config,
+                    "staff_mode": "straight", "trace": None}
             self.commit(folder, card)
             return card
 
@@ -68,8 +73,12 @@ class Cards:
             card = self.read(key, integer(value.get("revision"), "工作版本", 1))
             incoming = object_value(value.get("settings", {}), "谱线设置")
             config = staff.settings({**card["settings"], **incoming}, (card["width"], card["height"]))
+            mode = staff.tracking.staff_mode(value.get("staff_mode", card.get("staff_mode", "straight")))
+            trace = None
+            if mode == "traced":
+                trace = staff.tracking.trace_staff(staff.pixels(self.photo(key)), config)
             card.update(name=text(value.get("name", card["name"]), "校读卡名称", 80, False),
-                        settings=config, revision=card["revision"] + 1)
+                        settings=config, staff_mode=mode, trace=trace, revision=card["revision"] + 1)
             self.commit(self.folder(key), card)
             return card
 

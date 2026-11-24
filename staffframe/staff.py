@@ -8,6 +8,8 @@ from PIL import Image, ImageDraw, ImageOps, UnidentifiedImageError
 
 from image_lab.validation import Invalid, integer, number
 
+from . import tracking
+
 
 LUMA = np.array([0.2126, 0.7152, 0.0722])
 MAX_IMAGE_BYTES = 18 * 1024 * 1024
@@ -73,29 +75,38 @@ def pixel(image, x, y, config):
             "ink": bool(level <= config["ink_limit"])}
 
 
-def pitch(x, y, config):
-    """Report written natural pitch in treble clef, using the current straight staff."""
-    bottom = lines(config)[-1]
-    step = (bottom - y) / (config["gap"] / 2)
-    snapped = math.floor(step + 0.5)
-    if x < config["left"] or x > config["right"] or not -6 <= snapped <= 14:
-        return None
-    index = 4 * 7 + 2 + snapped  # E4 is the bottom staff line.
-    octave, letter = divmod(index, 7)
-    return {"label": "CDEFGAB"[letter] + str(octave), "step": snapped, "offset_px": (step - snapped) * config["gap"] / 2}
+def pitch(x, y, config, mode="straight", trace=None):
+    """Report the written natural pitch in treble clef.
+
+    Straight mode keeps the manual horizontal lines; traced mode reads against
+    the real curved lines (and gives no pitch name on review columns).
+    """
+    return tracking.pitch_at(x, y, config, mode, trace)
 
 
-def sample(image, x, y, config):
-    return {**pixel(image, x, y, config), "pitch": pitch(x, y, config)}
+def sample(image, x, y, config, mode="straight", trace=None):
+    return {**pixel(image, x, y, config), "pitch": pitch(x, y, config, mode, trace)}
 
 
-def report(image, config):
+def report(image, config, mode="straight", trace=None):
     x, y = config["note_x"], config["note_y"]
-    bottom = lines(config)[-1]
-    first = max(0, math.floor(config["top"] - 3 * config["gap"]))
+    if mode == "traced" and trace is not None:
+        top = tracking.line_y(trace, x, 0)
+        bottom = tracking.line_y(trace, x, 4)
+    else:
+        top = config["top"]
+        bottom = lines(config)[-1]
+    first = max(0, math.floor(top - 3 * config["gap"]))
     last = min(image.shape[0] - 1, math.ceil(bottom + 3 * config["gap"]))
     profile = [pixel(image, x, row, config) for row in range(first, last + 1)]
-    return {"reading": sample(image, x, y, config), "profile": profile, "lines_y": lines(config)}
+    return {
+        "reading": sample(image, x, y, config, mode, trace),
+        "profile": profile,
+        "lines_y": lines(config),
+        "staff_mode": mode,
+        "trace": trace,
+        "trace_summary": tracking.trace_summary(trace) if mode == "traced" and trace is not None else None,
+    }
 
 
 def practice():
@@ -127,4 +138,25 @@ def practice():
         draw.line((x + 9, y, x + 9, y - 44), fill=ink, width=3)
     draw.polygon([(386, 124), (430, 136), (430, 141), (386, 129)], fill=ink)
     draw.text((88, 312), "Count in slowly  /  Check the marked note", fill=(104, 95, 86))
+
+    def paper_at(px, py):
+        value = (237 - 12 * math.exp(-((px - 709) / 108) ** 2) - 7 * math.sin(px / 240) ** 2
+                 + 2 * math.sin(py * 0.55 + px * 0.19))
+        noise = ((px * 17 + py * 31) % 5) - 2
+        return (int(np.clip(value + 11 + noise, 0, 255)),
+                int(np.clip(value + 5 + noise, 0, 255)),
+                int(np.clip(value - 7 + noise, 0, 255)))
+
+    def erase(x0, x1, line_index):
+        rough_y = lines(cfg)[line_index]
+        for px in range(x0, x1 + 1):
+            bend = 3 * math.sin((px - 222) / 130) + 1.4 * math.sin((px + line_index * 4) / 53)
+            cy = int(round(rough_y + bend))
+            for py in range(cy - 2, cy + 3):
+                photo.putpixel((px, py), paper_at(px, py))
+
+    # A long interruption (> two line gaps) becomes a review column; a short one
+    # (with ink at both ends) stays bridgeable. Both avoid notes, stems and bars.
+    erase(500, 560, 0)
+    erase(348, 370, 3)
     return photo.size, png(photo), cfg

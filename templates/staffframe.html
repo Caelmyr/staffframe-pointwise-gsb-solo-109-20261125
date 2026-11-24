@@ -42,6 +42,11 @@
             <button id="mark-mode" data-mode="mark" aria-pressed="false" type="button">选音符</button>
           </div>
         </div>
+        <div class="staff-legend" aria-hidden="true">
+          <span><i class="curve"></i>跟出的弯线</span>
+          <span><i class="review"></i>待核段（不判音）</span>
+          <span><i class="manual"></i>手填直线</span>
+        </div>
         <div class="camera"><canvas id="capture" aria-label="谱页原片，可点击取样或输入原片像素坐标"></canvas></div>
         <div class="probe">
           <b>原片点读</b>
@@ -74,6 +79,14 @@
           <label>音符 Y<input data-setting="note_y" type="number" step="1" min="0" required></label>
         </div></fieldset>
         <label class="wide">墨迹亮度上限<input data-setting="ink_limit" type="number" step="1" min="1" max="254" required></label>
+        <fieldset class="staff-mode"><legend>判音方式</legend>
+          <div class="mode-options">
+            <label><input type="radio" name="staff_mode" value="straight" checked> 手填直线</label>
+            <label><input type="radio" name="staff_mode" value="traced"> 墨迹跟线（弯线）</label>
+          </div>
+          <button id="trace-preview" type="button">预演弯线（不保存）</button>
+          <p id="trace-status" role="status"></p>
+        </fieldset>
         <button id="save" class="primary" type="submit">保存并校读</button>
       </form>
       <section class="panel outputs">

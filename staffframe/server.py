@@ -61,11 +61,19 @@ def create_app(directory=None):
     def measurement(key):
         card = cards.read(key, request.args.get("revision"))
         image = staff.pixels(cards.photo(key))
-        return card, image, staff.report(image, card["settings"])
+        return card, image, staff.report(image, card["settings"], card["staff_mode"], card["trace"])
 
     @api.get("/cards/<key>/measurement")
     def measurement_json(key):
         card, _, result = measurement(key)
+        return jsonify(revision=card["revision"], **result)
+
+    @api.get("/cards/<key>/trace-preview")
+    def trace_preview(key):
+        card = cards.read(key, request.args.get("revision"))
+        image = staff.pixels(cards.photo(key))
+        trace = staff.tracking.trace_staff(image, card["settings"])
+        result = staff.report(image, card["settings"], "traced", trace)
         return jsonify(revision=card["revision"], **result)
 
     @api.get("/cards/<key>/probe")
@@ -73,7 +81,8 @@ def create_app(directory=None):
         card = cards.read(key, request.args.get("revision"))
         x = integer(request.args.get("x"), "X", 0, card["width"] - 1)
         y = integer(request.args.get("y"), "Y", 0, card["height"] - 1)
-        return jsonify(staff.sample(staff.pixels(cards.photo(key)), x, y, card["settings"]))
+        return jsonify(staff.sample(staff.pixels(cards.photo(key)), x, y, card["settings"],
+                                    card["staff_mode"], card["trace"]))
 
     @api.get("/cards/<key>/export/profile.csv")
     def profile(key):
