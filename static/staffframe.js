@@ -154,7 +154,9 @@ function show() {
   get("ink-verdict").textContent = result.reading.ink ? "墨迹" : "纸面";
   get("selected-level").textContent = "源像素 (" + result.reading.x + ", " + result.reading.y + ") · 亮度 " +
     result.reading.level.toFixed(1);
-  for (const [id, filename] of Object.entries({proof: "proof.png", csv: "profile.csv", zip: "observation.zip"})) {
+  for (const [id, filename] of Object.entries({
+    proof: "proof.png", csv: "profile.csv", zip: "observation.zip", clean: "clean.png",
+  })) {
     get(id).href = "/staffframe" + route("/export/" + filename) + savedQuery();
   }
   paintSource();
@@ -240,6 +242,10 @@ get("calibration").addEventListener("submit", (event) => {
 });
 get("prepare").addEventListener("click", () => action(async () => {
   const {url} = await api(route("/prepare") + savedQuery(), {method: "POST"});
+  location.assign(url);
+}));
+get("prepare-clean").addEventListener("click", () => action(async () => {
+  const {url} = await api(route("/prepare-clean") + savedQuery(), {method: "POST"});
   location.assign(url);
 }));
 action(library);

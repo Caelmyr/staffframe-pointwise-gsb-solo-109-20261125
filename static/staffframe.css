@@ -80,5 +80,13 @@ dialog::backdrop { background: #302b2790; }
 dialog form { display: grid; gap: 12px; }
 dialog .top-actions { justify-content: end; }
 #import-notice { color: var(--accent); font-size: 13px; }
+.clean-desk { margin: 4px 15px 15px; padding: 12px 0 2px; border-top: 1px dashed #cdbfae; display: grid; gap: 9px; }
+.clean-desk-head h3 { margin: 0 0 3px; font-size: 13px; font-weight: 700; color: var(--green); }
+.clean-desk-head span, .clean-hint { color: var(--muted); font-size: 11.5px; }
+.clean-download { display: inline-block; align-self: start; font-size: 12.5px; color: var(--accent); border: 1px solid #d7cbbc; border-radius: 5px; padding: 7px 12px; background: #faf7f0; }
+.clean-prepare-wrap { display: block; }
+.clean-prepare { width: 100%; font-size: 12.5px; border-color: var(--green); color: var(--green); background: #eef4f0; }
+.clean-prepare:hover { background: #e2eee7; border-color: var(--green); color: #1f4d42; }
+.clean-hint { margin: 0; line-height: 1.5; }
 @media (max-width: 880px) { .workspace { grid-template-columns: minmax(0,1fr) minmax(260px,295px); } }
 @media (max-width: 700px) { .workspace { grid-template-columns: 1fr; } .introduction { align-items: start; flex-direction: column; } }

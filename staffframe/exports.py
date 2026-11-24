@@ -7,7 +7,23 @@ import json
 
 from PIL import Image, ImageDraw
 
+from .cleaning import clean_png as _clean_png
 from .staff import png
+
+
+def clean_png(image, card):
+    """PNG bytes of the same-size de-lined clean copy for a card."""
+    return _clean_png(image, card["settings"] if isinstance(card, dict) and "settings" in card else card)
+
+
+# Serialisation-oriented aliases (exports functions conventionally return bytes).
+clean = clean_png
+clean_sheet_png = clean_png
+
+
+def clean_sheet(image, card):
+    """Alias returning PNG bytes; see :func:`clean_png`."""
+    return clean_png(image, card)
 
 
 def trace_table(result):

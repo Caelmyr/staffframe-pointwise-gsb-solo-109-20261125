@@ -80,6 +80,17 @@
         <div class="panel-head"><h2>校读交接</h2></div>
         <div><a id="proof" download>PNG 校样 ↓</a><a id="csv" download>CSV 读数 ↓</a><a id="zip" download>ZIP 校读卡 ↓</a></div>
         <button id="prepare" type="button">将原片送入照片准备 ↗</button>
+        <div class="clean-desk">
+          <div class="clean-desk-head">
+            <h3>去线清稿</h3>
+            <span>保留原尺寸 · 只清窄带内判为谱线的墨</span>
+          </div>
+          <a id="clean" data-testid="clean-png" name="clean-png" class="clean-download" download="staffframe-clean.png" href="#">下载去线清稿 PNG ↓</a>
+          <span id="clean-prepare" class="clean-prepare-wrap">
+            <button id="prepare-clean" data-testid="clean-prepare-button" class="clean-prepare" type="button">用清稿创建照片准备工程 ↗</button>
+          </span>
+          <p class="clean-hint">原片点读、音位与普通照片准备仍使用原始照片。</p>
+        </div>
       </section>
     </aside>
   </section>

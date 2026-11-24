@@ -8,6 +8,16 @@ from PIL import Image, ImageDraw, ImageOps, UnidentifiedImageError
 
 from image_lab.validation import Invalid, integer, number
 
+from .cleaning import (  # noqa: F401  (re-exported domain operations)
+    clean,
+    clean_image,
+    clean_png,
+    clean_sheet,
+    line_mask,
+    remove_lines,
+    remove_staff_lines,
+)
+
 
 LUMA = np.array([0.2126, 0.7152, 0.0722])
 MAX_IMAGE_BYTES = 18 * 1024 * 1024

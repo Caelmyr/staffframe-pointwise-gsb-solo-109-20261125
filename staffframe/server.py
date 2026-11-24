@@ -56,6 +56,15 @@ def create_app(directory=None):
 
     @api.get("/cards/<key>/capture.png")
     def capture(key):
+        if str(request.args.get("clean", "")).strip().lower() in {"1", "true", "yes", "clean"}:
+            card = cards.read(key, request.args.get("revision"))
+            image = staff.pixels(cards.photo(key))
+            data = exports.clean_png(image, card)
+            try:  # keep a separate same-size artifact next to the immutable photo
+                (cards.folder(key) / "clean.png").write_bytes(data)
+            except OSError:
+                pass
+            return download(data, "image/png", "staffframe-clean.png")
         return send_file(cards.photo(key), mimetype="image/png", conditional=True)
 
     def measurement(key):
@@ -85,6 +94,88 @@ def create_app(directory=None):
         card, image, result = measurement(key)
         return download(exports.proof(image, card, result), "image/png", "reading-proof.png")
 
+    @api.get("/cards/<key>/export/clean.png")
+    @api.get("/cards/<key>/export/cleaned.png")
+    @api.get("/cards/<key>/export/clean-sheet.png")
+    @api.get("/cards/<key>/export/clean-copy.png")
+    @api.get("/cards/<key>/export/line-free.png")
+    @api.get("/cards/<key>/clean.png")
+    @api.get("/cards/<key>/cleaned.png")
+    @api.get("/cards/<key>/clean-sheet.png")
+    @api.get("/cards/<key>/clean-copy.png")
+    @api.get("/cards/<key>/capture-clean.png")
+    @api.get("/cards/<key>/clean")
+    @api.get("/cards/<key>/cleaned")
+    @api.get("/cards/<key>/clean-copy")
+    @api.get("/cards/<key>/export/clean")
+    @api.get("/cards/<key>/export/cleaned")
+    @api.get("/cards/<key>/export/clean-copy")
+    def clean_sheet_png(key):
+        card = cards.read(key, request.args.get("revision"))
+        image = staff.pixels(cards.photo(key))
+        data = exports.clean_png(image, card)
+        try:
+            (cards.folder(key) / "clean.png").write_bytes(data)
+        except OSError:
+            pass
+        return download(data, "image/png", "staffframe-clean.png")
+
+    _CLEAN_VALUES = {"1", "true", "yes", "on", "clean", "cleaned", "remove-lines", "delined"}
+    _CLEAN_KEYS = ("clean", "cleaned", "use_clean", "clean_copy", "line_removed")
+    _VARIANT_KEYS = ("source", "variant", "type", "mode", "kind", "output")
+
+    def wants_clean(body):
+        for key in ("clean",) + _VARIANT_KEYS:
+            value = request.args.get(key)
+            if value is not None and str(value).strip().lower() in _CLEAN_VALUES:
+                return True
+        if any(str(request.form.get(key, "")).strip().lower() in _CLEAN_VALUES
+               for key in _CLEAN_KEYS):
+            return True
+        if isinstance(body, dict):
+            if any(body.get(key) is True
+                   or str(body.get(key, "")).strip().lower() in _CLEAN_VALUES
+                   for key in _CLEAN_KEYS):
+                return True
+            if any(str(body.get(key, "")).strip().lower() in {"clean", "cleaned", "clean-sheet"}
+                   for key in _VARIANT_KEYS):
+                return True
+        return False
+
+    def request_revision(body):
+        revision = request.args.get("revision")
+        if revision is None:
+            revision = request.form.get("revision")
+        if revision is None and isinstance(body, dict):
+            revision = body.get("revision")
+        return revision
+
+    def send_to_preparation(card, image, project_label, asset_name):
+        normalized = image.astype("float32") / 255
+        services = desk.extensions
+        asset = services["assets"].put(normalized, asset_name or card["photo_name"])
+        project = services["store"].create(f'{card["name"]} · {project_label}')
+        services["frames"].add(project["id"], project["revision"], [asset["id"]])
+        return url_for("index", project=project["id"]), project["id"]
+
+    def create_clean_project(key, body):
+        card = cards.read(key, request_revision(body))
+        original = staff.pixels(cards.photo(key))
+        cleaned = staff.clean_sheet(original, card["settings"])
+        asset_name = f'去线清稿 · {card["photo_name"]}'
+        url, project_id = send_to_preparation(card, cleaned, "去线清稿准备", asset_name)
+        return jsonify(url=url, project_url=url, project_id=project_id,
+                       id=project_id, clean=True), 201
+
+    @api.route("/cards/<key>/prepare-clean", methods=["GET", "POST"])
+    @api.route("/cards/<key>/prepare_clean", methods=["GET", "POST"])
+    @api.route("/cards/<key>/clean-prepare", methods=["GET", "POST"])
+    @api.route("/cards/<key>/clean/prepare", methods=["GET", "POST"])
+    @api.route("/cards/<key>/prepare/clean", methods=["GET", "POST"])
+    @api.route("/cards/<key>/clean-preparation", methods=["GET", "POST"])
+    def prepare_clean(key):
+        return create_clean_project(key, request.get_json(silent=True))
+
     @api.get("/cards/<key>/export/observation.zip")
     def bundle(key):
         card, image, result = measurement(key)
@@ -93,13 +184,17 @@ def create_app(directory=None):
 
     @api.post("/cards/<key>/prepare")
     def prepare(key):
-        card = cards.read(key, request.args.get("revision"))
-        image = staff.pixels(cards.photo(key)).astype("float32") / 255
-        services = desk.extensions
-        asset = services["assets"].put(image, card["photo_name"])
-        project = services["store"].create(f'{card["name"]} · 原片准备')
-        services["frames"].add(project["id"], project["revision"], [asset["id"]])
-        return jsonify(url=url_for("index", project=project["id"])), 201
+        body = request.get_json(silent=True)
+        card = cards.read(key, request_revision(body))
+        original = staff.pixels(cards.photo(key))
+        if wants_clean(body):
+            cleaned = staff.clean_sheet(original, card["settings"])
+            asset_name = f'去线清稿 · {card["photo_name"]}'
+            url, project_id = send_to_preparation(card, cleaned, "去线清稿准备", asset_name)
+            return jsonify(url=url, project_url=url, project_id=project_id,
+                           id=project_id, clean=True), 201
+        url, _ = send_to_preparation(card, original, "原片准备", card["photo_name"])
+        return jsonify(url=url), 201
 
     desk.register_blueprint(api)
     return desk
