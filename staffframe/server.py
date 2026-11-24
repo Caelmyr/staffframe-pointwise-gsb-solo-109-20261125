@@ -73,7 +73,8 @@ def create_app(directory=None):
         card = cards.read(key, request.args.get("revision"))
         x = integer(request.args.get("x"), "X", 0, card["width"] - 1)
         y = integer(request.args.get("y"), "Y", 0, card["height"] - 1)
-        return jsonify(staff.sample(staff.pixels(cards.photo(key)), x, y, card["settings"]))
+        image = staff.pixels(cards.photo(key))
+        return jsonify(staff.sample(image, x, y, card["settings"]))
 
     @api.get("/cards/<key>/export/profile.csv")
     def profile(key):
@@ -84,6 +85,13 @@ def create_app(directory=None):
     def proof(key):
         card, image, result = measurement(key)
         return download(exports.proof(image, card, result), "image/png", "reading-proof.png")
+
+    @api.get("/cards/<key>/export/measure.png")
+    def measure_crop(key):
+        card, image, result = measurement(key)
+        if not result["measure"]["inside"]:
+            raise Invalid("这一段还没有完整的左右小节线，无法裁出小节")
+        return download(exports.measure_image(image, result), "image/png", "measure.png")
 
     @api.get("/cards/<key>/export/observation.zip")
     def bundle(key):

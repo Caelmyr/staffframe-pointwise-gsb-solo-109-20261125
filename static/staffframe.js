@@ -57,6 +57,7 @@ function paintSource() {
   canvas.height = card.height;
   ctx.drawImage(photo, 0, 0);
   const cfg = card.settings;
+  const bounds = state.result.measure;
   ctx.lineWidth = Math.max(1, card.width / 550);
   ctx.strokeStyle = "#ad4a3e";
   ctx.setLineDash([5, 6]);
@@ -67,6 +68,20 @@ function paintSource() {
     ctx.stroke();
   }
   ctx.setLineDash([]);
+  if (bounds.inside) {
+    const [top, bottom] = [Math.min(bounds.left.top, bounds.right.top), Math.max(bounds.left.bottom, bounds.right.bottom)];
+    const crop = bounds.crop;
+    ctx.fillStyle = "rgba(201, 138, 46, .13)";
+    ctx.fillRect(crop.left, top, crop.width, bottom - top + 1);
+    ctx.strokeStyle = "#c98a2e";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(crop.left, top, crop.width, bottom - top + 1);
+    ctx.strokeStyle = "#1f5f8b";
+    ctx.lineWidth = Math.max(2, card.width / 260);
+    for (const boundary of [bounds.left, bounds.right]) {
+      for (const stroke of boundary.strokes) ctx.strokeRect(stroke.start, boundary.top, stroke.end - stroke.start + 1, boundary.bottom - boundary.top + 1);
+    }
+  }
   const size = Math.max(8, card.width / 83);
   const drawn = state.result.reading;
   ctx.strokeStyle = "#23806a";
@@ -128,8 +143,16 @@ function paintChart() {
 }
 
 function pointLabel(point) {
-  const pitch = point.pitch?.label || "超出校读范围";
+  const pitch = point.pitch?.label || (point.inside_measure ? "超出校读范围" : "不在本小节");
   return "(" + point.x + ", " + point.y + ") · " + point.level.toFixed(1) + " · " + pitch;
+}
+
+function measureLabel(bounds) {
+  if (bounds.on_boundary) return "选音正落在小节线上，请挪到小节内再读";
+  if (!bounds.inside) return bounds.review || "左右小节线尚未配齐";
+  const [left, right] = [bounds.left, bounds.right];
+  const edges = [(left.double ? "并排界 " : "小节线 ") + left.x, (right.double ? "并排界 " : "小节线 ") + right.x];
+  return "本小节 " + edges[0] + " → " + edges[1] + " · 裁边 x " + bounds.crop.left + "–" + (bounds.crop.right - 1);
 }
 
 function show() {
@@ -150,13 +173,18 @@ function show() {
   get("pitch").textContent = pitch?.label || "—";
   get("pitch-detail").textContent = pitch
     ? "偏离最近线位 " + Math.abs(pitch.offset_px).toFixed(1) + " px"
-    : "超出当前谱段的校读范围";
+    : result.measure.on_boundary ? "选音落在小节线上，挪进小节后再读"
+    : result.measure.inside ? "选音不在两条实际界之间，暂不给本小节的音名" : "缺少左右实际界，请复核";
   get("ink-verdict").textContent = result.reading.ink ? "墨迹" : "纸面";
   get("selected-level").textContent = "源像素 (" + result.reading.x + ", " + result.reading.y + ") · 亮度 " +
     result.reading.level.toFixed(1);
+  get("measure-state").textContent = measureLabel(result.measure);
+  get("measure-state").hidden = false;
   for (const [id, filename] of Object.entries({proof: "proof.png", csv: "profile.csv", zip: "observation.zip"})) {
     get(id).href = "/staffframe" + route("/export/" + filename) + savedQuery();
   }
+  get("measure").hidden = !result.measure.inside;
+  get("measure").href = "/staffframe" + route("/export/measure.png") + savedQuery();
   paintSource();
   paintChart();
 }

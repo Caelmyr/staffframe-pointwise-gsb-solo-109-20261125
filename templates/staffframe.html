@@ -61,6 +61,7 @@
         <div class="panel-head"><h2>已存的高音位置</h2><span id="ink-verdict"></span></div>
         <div class="pitch"><strong id="pitch">—</strong><span id="pitch-detail"></span></div>
         <p id="selected-level"></p>
+        <p id="measure-state" class="measure-state"></p>
       </section>
       <form id="calibration" class="panel settings">
         <div class="panel-head"><div><h2>谱段标定</h2><span>第一线指纸上最上面的一线</span></div></div>
@@ -77,8 +78,9 @@
         <button id="save" class="primary" type="submit">保存并校读</button>
       </form>
       <section class="panel outputs">
-        <div class="panel-head"><h2>校读交接</h2></div>
-        <div><a id="proof" download>PNG 校样 ↓</a><a id="csv" download>CSV 读数 ↓</a><a id="zip" download>ZIP 校读卡 ↓</a></div>
+        <div class="panel-head"><div><h2>校读交接</h2><span>小节图按原片坐标裁出，最多越界四分之一线距</span></div></div>
+        <div><a id="proof" download>PNG 校样 ↓</a><a id="csv" download>CSV 读数 ↓</a><a id="zip" download>ZIP 校读卡 ↓</a>
+          <a id="measure" download hidden>小节 PNG ↓</a></div>
         <button id="prepare" type="button">将原片送入照片准备 ↗</button>
       </section>
     </aside>
