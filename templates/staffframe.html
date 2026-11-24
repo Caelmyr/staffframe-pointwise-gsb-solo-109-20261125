@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StaffFrame · 谱线校读台</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='staffframe.css') }}">
+  <script defer src="{{ url_for('static', filename='staffframe.js') }}"></script>
+</head>
+<body>
+<header class="masthead">
+  <a class="brand" href="/"><i aria-hidden="true"></i> StaffFrame</a>
+  <span class="mast-label">谱线校读台</span>
+  <a class="external" href="/prepare">照片准备 ↗</a>
+</header>
+<main>
+  <section class="introduction">
+    <div><h1>排练前的谱页校读</h1><p>在拍下的高音谱表上核对写谱位置，保留原片和选音依据。</p></div>
+    <div class="top-actions">
+      <button id="practice" class="primary" type="button">打开练习谱页</button>
+      <button id="open-import" type="button">导入原片</button>
+    </div>
+  </section>
+  <p id="notice" class="notice" role="status" hidden></p>
+  <section class="library">
+    <label for="library">校读卡</label>
+    <select id="library"><option value="">选取已存卡片</option></select>
+    <span id="origin"></span>
+  </section>
+  <section id="empty" class="empty">
+    <div class="empty-staff" aria-hidden="true"><i></i></div>
+    <h2>选择一段谱页照片</h2>
+    <p>读数以原片左上角为坐标原点，提示高音谱表的自然音位置。</p>
+  </section>
+  <section id="workspace" class="workspace" hidden>
+    <div class="left">
+      <section class="panel source">
+        <div class="panel-head">
+          <div><h2 id="card-title">原片</h2><span id="dimensions"></span></div>
+          <div class="modes" role="group" aria-label="原片选音模式">
+            <button id="probe-mode" data-mode="probe" aria-pressed="true" type="button">点读</button>
+            <button id="mark-mode" data-mode="mark" aria-pressed="false" type="button">选音符</button>
+          </div>
+        </div>
+        <div class="camera"><canvas id="capture" aria-label="谱页原片，可点击取样或输入原片像素坐标"></canvas></div>
+        <div class="probe">
+          <b>原片点读</b>
+          <form id="probe-form"><label>X <input id="probe-x" type="number" min="0" step="1" required></label>
+            <label>Y <input id="probe-y" type="number" min="0" step="1" required></label>
+            <button type="submit">读取</button></form>
+          <span id="probe-result">选择原片像素</span>
+        </div>
+      </section>
+      <section class="panel profile">
+        <div class="panel-head"><div><h2>选音所在列</h2><span>实测亮度 · 原片像素 Y</span></div><span class="legend"><i></i> 墨迹亮度上限</span></div>
+        <canvas id="chart" width="850" height="155" aria-label="选中列的实际亮度剖面"></canvas>
+      </section>
+    </div>
+    <aside class="right">
+      <section class="panel readout">
+        <div class="panel-head"><h2>已存的高音位置</h2><span id="ink-verdict"></span></div>
+        <div class="pitch"><strong id="pitch">—</strong><span id="pitch-detail"></span></div>
+        <p id="selected-level"></p>
+      </section>
+      <form id="calibration" class="panel settings">
+        <div class="panel-head"><div><h2>谱段标定</h2><span>第一线指纸上最上面的一线</span></div></div>
+        <label class="wide">卡片名称<input id="name" maxlength="80" required></label>
+        <fieldset><legend>五线参考 · px</legend><div class="form-grid">
+          <label>起点 X<input data-setting="left" type="number" step="1" min="0" required></label>
+          <label>终点 X<input data-setting="right" type="number" step="1" min="0" required></label>
+          <label>第一线 Y<input data-setting="top" type="number" step="any" min="0" required></label>
+          <label>线距<input data-setting="gap" type="number" step="any" min="3" required></label>
+          <label>音符 X<input data-setting="note_x" type="number" step="1" min="0" required></label>
+          <label>音符 Y<input data-setting="note_y" type="number" step="1" min="0" required></label>
+        </div></fieldset>
+        <label class="wide">墨迹亮度上限<input data-setting="ink_limit" type="number" step="1" min="1" max="254" required></label>
+        <button id="save" class="primary" type="submit">保存并校读</button>
+      </form>
+      <section class="panel outputs">
+        <div class="panel-head"><h2>校读交接</h2></div>
+        <div><a id="proof" download>PNG 校样 ↓</a><a id="csv" download>CSV 读数 ↓</a><a id="zip" download>ZIP 校读卡 ↓</a></div>
+        <button id="prepare" type="button">将原片送入照片准备 ↗</button>
+      </section>
+    </aside>
+  </section>
+</main>
+<dialog id="import">
+  <form id="upload">
+    <h2>导入谱页原片</h2>
+    <label>校读卡名称<input name="name" maxlength="80" required></label>
+    <label>照片<input name="photo" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff" required></label>
+    <p id="import-notice" role="status"></p>
+    <div class="top-actions"><button id="cancel-import" type="button">取消</button><button class="primary" type="submit">建立校读卡</button></div>
+  </form>
+</dialog>
+</body>
+</html>

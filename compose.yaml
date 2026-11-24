@@ -1,0 +1,16 @@
+name: solo112-staffframe
+services:
+  desk:
+    build:
+      context: .
+      args:
+        STAFFFRAME_DEPS_IMAGE: ${STAFFFRAME_DEPS_IMAGE:-python:3.11-slim}
+    image: ${STAFFFRAME_IMAGE:-solo112-staffframe:1.0}
+    network_mode: bridge
+    ports:
+      - "127.0.0.1:${STAFFFRAME_PORT:-19912}:8000"
+    volumes:
+      - measurements:/var/lib/staffframe
+    init: true
+volumes:
+  measurements:
